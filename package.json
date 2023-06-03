@@ -19,7 +19,8 @@
   "devDependencies": {
     "@commitlint/cli": "^17.2.0",
     "@commitlint/config-conventional": "^17.2.0",
-    "@whitebird/eslint-config": "1.0.0-beta.0",
+    "@tsconfig/strictest": "^2.0.1",
+    "@whitebird/eslint-config": "latest",
     "@whitebird/tsconfig": "latest",
     "husky": "^8.0.0",
     "turbo": "latest",

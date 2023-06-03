@@ -3,7 +3,9 @@
   "display": "Default",
   "extends": "@whitebird/tsconfig/node.json",
   "compilerOptions": {
-    "outDir": "dist"
+    "lib": ["DOM", "ESNext"],
+    "outDir": "dist",
+    "jsx": "react"
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
