@@ -5,7 +5,10 @@
   "compilerOptions": {
     "lib": ["DOM", "ESNext"],
     "outDir": "dist",
-    "jsx": "react"
+    "jsx": "react",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
