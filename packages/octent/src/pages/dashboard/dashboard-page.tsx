@@ -8,8 +8,16 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { OctentOptionsContext } from '@/contexts/octent-options-context'
-import type { Content, Collection } from '@/lib/utils/content-explorer'
+import type { Collection, Content, Field } from '@/lib/utils/content-explorer'
 import { ContentExplorer } from '@/lib/utils/content-explorer'
 import { useContentStatus } from '@/hooks/use-content-status'
 import { Button } from '@/components/ui/button'
@@ -26,6 +34,7 @@ export function DashboardPage() {
 
   const [contents, setContents] = useState<FSContent[] | null>(null)
   const [directories, setDirectories] = useState<FSDirectory[] | null>(null)
+  const [collections, setCollections] = useState<string[] | null>(null)
 
   const auth = useAuth()
 
@@ -50,6 +59,7 @@ export function DashboardPage() {
   const updateContents = useCallback(async () => {
     setContents(await contentExplorer.listContentsInPath(currentPath))
     setDirectories(await contentExplorer.listDirectoriesInPath(currentPath))
+    setCollections(await contentExplorer.listCollections())
   }, [contentExplorer, currentPath])
 
   useEffect(function () {
@@ -113,6 +123,23 @@ export function DashboardPage() {
             ))}
           </ul>
         </main>
+        <aside className="w-64 ml-24">
+          <header className="mb-8">
+            <h2>Collections</h2>
+          </header>
+          {
+            collections?.length === 0 && <Label>No collections found.</Label>
+          }
+          <ul>
+            {collections?.map(collection => (
+              <DashboardItem
+                key={collection}
+                name={collection}
+                dialog={<CollectionDialog collection={collection} contentExplorer={contentExplorer} />}
+              />
+            ))}
+          </ul>
+        </aside>
       </div>
     </div>
   )
@@ -162,6 +189,40 @@ function DashboardItem({
         </Link>
       }
     </li>
+  )
+}
+
+function CollectionDialog({ collection, contentExplorer }: { collection: string; contentExplorer: ContentExplorer }) {
+  const [collectionFields, setCollectionFields] = useState<Field[] | null>(null)
+
+  useEffect(() => {
+    contentExplorer.getCollection(collection).then(({ fields }) => {
+      setCollectionFields(fields)
+    })
+  }, [collection, contentExplorer])
+
+  return (
+    <div className="py-4">
+      <h3 className="mb-4">Fields</h3>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Field</TableHead>
+            <TableHead>Type</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {
+            collectionFields?.map(field => (
+              <TableRow key={field.name}>
+                <TableCell>{field.name}</TableCell>
+                <TableCell>{field.type}</TableCell>
+              </TableRow>
+            ))
+          }
+        </TableBody>
+      </Table>
+    </div>
   )
 }
 
