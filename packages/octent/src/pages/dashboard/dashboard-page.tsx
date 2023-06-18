@@ -1,4 +1,4 @@
-import type { LucideIcon } from 'lucide-react'
+import { FolderPlus, LucideIcon } from 'lucide-react'
 import { File, Folder } from 'lucide-react'
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -22,6 +22,7 @@ import { ContentExplorer } from '@/lib/utils/content-explorer'
 import { useContentStatus } from '@/hooks/use-content-status'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
+import { cn } from '@/lib/utils'
 
 type FSDirectory = Awaited<ReturnType<ContentExplorer['listDirectoriesInPath']>>[0]
 type FSContent = Awaited<ReturnType<ContentExplorer['listContentsInPath']>>[0]
@@ -36,6 +37,8 @@ export function DashboardPage() {
   const [directories, setDirectories] = useState<FSDirectory[] | null>(null)
   const [collections, setCollections] = useState<string[] | null>(null)
 
+  const [isCreatingDirectory, setIsCreatingDirectory] = useState(false)
+
   const auth = useAuth()
 
   const contentStatus = useContentStatus((state) => state.status)
@@ -43,7 +46,7 @@ export function DashboardPage() {
 
   const contentExplorer = useMemo(() => new ContentExplorer(
     options.repositoryUrl,
-    options.contentDirectory, 
+    options.contentDirectory,
     options.dataType,
     () => {
       if (auth.type !== 'http')
@@ -66,6 +69,11 @@ export function DashboardPage() {
     updateContents()
   }, [updateContents, currentPath])
 
+  const createDirectory = useCallback(async (name: string, callback: () => void = () => { }) => {
+    await contentExplorer.createDirectory(`${currentPath}/${name}`)
+    updateContents().then(callback)
+  }, [contentExplorer, currentPath, updateContents])
+
   return (
     <div className="h-full mx-32 my-16 flex flex-col">
       <header className="w-full flex flex-row-reverse mb-8">
@@ -84,8 +92,10 @@ export function DashboardPage() {
         <main className="flex-1 max-w-4xl">
           <header className="mb-8">
             <h1>Content</h1>
+          </header>
+          <div className='mt-2 mb-4 flex flex-row justify-between items-center'>
             <Breadcrumb
-              className='ml-[1ch] mt-2'
+              className='mb-0'
               path={
                 [
                   '/',
@@ -94,7 +104,12 @@ export function DashboardPage() {
                     .filter(pathPart => pathPart.length > 0),
                 ]}
             />
-          </header>
+            <div className='flex flex-row space-x-4'>
+              <Button variant='link' className='px-0' onClick={() => setIsCreatingDirectory(true)}>
+                <FolderPlus size={16} />
+              </Button>
+            </div>
+          </div>
           <ul className="w-full space-y-2">
             {
               (directories?.length ?? 0) + (contents?.length ?? 0) === 0 && <Label>No content found.</Label>
@@ -110,6 +125,25 @@ export function DashboardPage() {
                 <Separator />
               </div>
             ))}
+            {
+              isCreatingDirectory && (
+                <div className="space-y-2">
+                  <DashboardItem
+                    name=''
+                    edit={{
+                      onBlur(value) {
+                        if (value.length > 0)
+                          createDirectory(value, () => setIsCreatingDirectory(false))
+                        else
+                          setIsCreatingDirectory(false)
+                      },
+                    }}
+                    icon={Folder}
+                  />
+                  <Separator />
+                </div>
+              )
+            }
             {contents?.map(content => (
               <div key={content.path} className="space-y-2">
                 <DashboardItem
@@ -148,27 +182,43 @@ export function DashboardPage() {
 function DashboardItem({
   name,
   label,
+  edit,
   dialog,
   link,
   icon: Icon,
 }: { name: string; label?: string; icon?: LucideIcon } & (
-  | { dialog?: React.ReactNode; link?: never }
-  | { link: string; dialog?: never }
+  | { dialog?: React.ReactNode; link?: never; edit?: never }
+  | { link: string; dialog?: never; edit?: never }
+  | { edit: {
+    onBlur: (value: string) => void
+  }; dialog?: never; link?: never }
 )) {
   const nameParts = name.split('.')
   const nameWithoutExtension = nameParts.length > 1 ? nameParts.slice(0, -1).join('.') : nameParts[0]
 
   const ContentRow = (
     <>
-      <div className="flex items-center">
+      <div className="flex-1 flex items-center">
         {Icon && <Icon className="mr-2 h-4 w-4" />}
-        <p className="!m-0 select-none">{nameWithoutExtension}</p>
+        {
+          edit
+          ? <Input
+              className="border-none outline-none focus-visible:ring-0 p-0 text-base h-auto leading-7"
+              defaultValue={nameWithoutExtension}
+              autoFocus
+              onBlur={event => edit.onBlur(event.currentTarget.value)}
+            />
+          : <p className="!m-0 select-none">{nameWithoutExtension}</p>
+        }
       </div>
       {label && <Label>{label}</Label>}
     </>
   )
 
-  const className = 'w-full py-2 px-4 rounded-sm hover:bg-muted/50 flex items-center justify-between cursor-pointer'
+  const className = cn(
+    'w-full py-2 px-4 rounded-sm flex items-center justify-between',
+    !edit && 'hover:bg-muted/50 cursor-pointer'
+  )
 
   return (
     <li className="w-full">
@@ -183,10 +233,14 @@ function DashboardItem({
         </Dialog>
       }
       {
-        link
-        && <Link to={link} className={className}>
+        link && <Link to={link} className={className}>
           {ContentRow}
         </Link>
+      }
+      {
+        edit && <div className={className}>
+          {ContentRow}
+        </div>
       }
     </li>
   )
