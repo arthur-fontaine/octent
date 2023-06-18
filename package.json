@@ -4,7 +4,8 @@
   "private": true,
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "examples/*"
   ],
   "scripts": {
     "build": "turbo run build",
@@ -20,8 +21,10 @@
     "@commitlint/cli": "^17.2.0",
     "@commitlint/config-conventional": "^17.2.0",
     "@tsconfig/strictest": "^2.0.1",
-    "@whitebird/eslint-config": "latest",
+    "@whitebird/eslint-config": "1.0.0-beta.1",
     "@whitebird/tsconfig": "latest",
+    "esbuild": "*",
+    "eslint": "^8.42.0",
     "husky": "^8.0.0",
     "turbo": "latest",
     "typescript": "^4.8.4"
