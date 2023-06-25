@@ -1,4 +1,4 @@
-import { FolderPlus, LucideIcon } from 'lucide-react'
+import { FolderPlus, LucideIcon, Plus } from 'lucide-react'
 import { File, Folder } from 'lucide-react'
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -23,6 +23,7 @@ import { useContentStatus } from '@/hooks/use-content-status'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/utils'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 type FSDirectory = Awaited<ReturnType<ContentExplorer['listDirectoriesInPath']>>[0]
 type FSContent = Awaited<ReturnType<ContentExplorer['listContentsInPath']>>[0]
@@ -158,8 +159,16 @@ export function DashboardPage() {
           </ul>
         </main>
         <aside className="w-64 ml-24">
-          <header className="mb-8">
-            <h2>Collections</h2>
+          <header className="mb-8 flex flex-row justify-between items-center border-b pb-2">
+            <h2 className="border-none p-0">Collections</h2>
+            <Dialog>
+              <DialogTrigger>
+                <Plus size={16} />
+              </DialogTrigger>
+              <DialogContent>
+                <NewCollectionDialog contentExplorer={contentExplorer} />
+              </DialogContent>
+            </Dialog>
           </header>
           {
             collections?.length === 0 && <Label>No collections found.</Label>
@@ -189,9 +198,11 @@ function DashboardItem({
 }: { name: string; label?: string; icon?: LucideIcon } & (
   | { dialog?: React.ReactNode; link?: never; edit?: never }
   | { link: string; dialog?: never; edit?: never }
-  | { edit: {
-    onBlur: (value: string) => void
-  }; dialog?: never; link?: never }
+  | {
+    edit: {
+      onBlur: (value: string) => void
+    }; dialog?: never; link?: never
+  }
 )) {
   const nameParts = name.split('.')
   const nameWithoutExtension = nameParts.length > 1 ? nameParts.slice(0, -1).join('.') : nameParts[0]
@@ -202,13 +213,13 @@ function DashboardItem({
         {Icon && <Icon className="mr-2 h-4 w-4" />}
         {
           edit
-          ? <Input
+            ? <Input
               className="border-none outline-none focus-visible:ring-0 p-0 text-base h-auto leading-7"
               defaultValue={nameWithoutExtension}
               autoFocus
               onBlur={event => edit.onBlur(event.currentTarget.value)}
             />
-          : <p className="!m-0 select-none">{nameWithoutExtension}</p>
+            : <p className="!m-0 select-none">{nameWithoutExtension}</p>
         }
       </div>
       {label && <Label>{label}</Label>}
@@ -257,7 +268,7 @@ function CollectionDialog({ collection, contentExplorer }: { collection: string;
 
   return (
     <div className="py-4">
-      <h3 className="mb-4">Fields</h3>
+      <h3 className="mb-4">{collection.split('.').slice(0, -1).join('.')}</h3>
       <Table>
         <TableHeader>
           <TableRow>
@@ -276,6 +287,121 @@ function CollectionDialog({ collection, contentExplorer }: { collection: string;
           }
         </TableBody>
       </Table>
+    </div>
+  )
+}
+
+function NewCollectionDialog({ contentExplorer }: { contentExplorer: ContentExplorer }) {
+  const newFieldTemplate: Partial<Field> = {}
+
+  const [collectionName, setCollectionName] = useState('')
+  const [collectionFields, setCollectionFields] = useState<Field[]>([])
+  const [newField, setNewField] = useState<Partial<Field>>(newFieldTemplate)
+
+  const updateContentStatus = useContentStatus((state) => state.updateStatus)
+
+  const isFieldAlmostCompleted = newField.name !== undefined && newField.name.length > 0 && newField.type !== undefined
+  const isValid = collectionName.length > 0 && collectionFields.length > 0 && (newField.name === undefined || isFieldAlmostCompleted)
+
+  const addField = useCallback((newField: Field) => {
+    setCollectionFields(prev => [...prev, newField])
+    setNewField(newFieldTemplate)
+  }, [setCollectionFields, newField, setNewField])
+
+  if (isFieldAlmostCompleted) {
+    addField(newField as Field)
+    setNewField(newFieldTemplate)
+  }
+
+  return (
+    <div className="py-4">
+      <Input
+        className="mb-4 border-none outline-none focus-visible:ring-offset-8 p-0 text-2xl font-semibold tracking-tight h-auto leading-7 w-[15ch]"
+        placeholder="Collection Name"
+        value={collectionName}
+        onChange={event => setCollectionName(event.currentTarget.value)}
+      />
+      <Table>
+        <TableBody>
+          {
+            [...collectionFields, newField].map((field, index) => (
+              <TableRow key={index}>
+                <TableCell>
+                  <Input
+                    className="border-none outline-none focus-visible:ring-offset-4 p-0 h-auto leading-7"
+                    defaultValue={field.name}
+                    placeholder="Field Name"
+                    onChange={event => {
+                      const value = event.currentTarget.value
+
+                      if (index === collectionFields.length) {
+                        setNewField(prev => {
+                          const newField = { ...prev }
+                          newField.name = value
+                          return newField
+                        })
+                      } else {
+                        setCollectionFields(prev => {
+                          const newFields = [...prev]
+                          newFields[index]!.name = value
+                          return newFields
+                        })
+                      }
+                    }}
+                  />
+                </TableCell>
+                <TableCell className='w-[20ch]'>
+                  <Select
+                    {...(field.type && { defaultValue: field.type })}
+                    onValueChange={value => {
+                      if (!['string', 'number', 'boolean'].includes(value)) {
+                        return
+                      }
+
+                      if (index === collectionFields.length) {
+                        setNewField(prev => {
+                          const newField = { ...prev }
+                          newField.type = value as Field['type']
+                          return newField
+                        })
+                      } else {
+                        setCollectionFields(prev => {
+                          const newFields = [...prev]
+                          newFields[index]!.type = value as Field['type']
+                          return newFields
+                        })
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-full border-none outline-none focus-visible:ring-offset-4 focus:ring-offset-4 p-0 h-auto leading-7">
+                      <SelectValue placeholder="Select a type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="string">String</SelectItem>
+                      <SelectItem value="number">Number</SelectItem>
+                      <SelectItem value="boolean">Boolean</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+              </TableRow>
+            ))
+          }
+        </TableBody>
+      </Table>
+      <div className="flex justify-end mt-4">
+        <Button
+          disabled={!isValid}
+          onClick={async () => {
+            await contentExplorer.createCollection({
+              name: collectionName,
+              fields: collectionFields
+            })
+            updateContentStatus(contentExplorer)
+          }}
+        >
+          Create
+        </Button>
+      </div>
     </div>
   )
 }
