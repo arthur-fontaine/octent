@@ -60,6 +60,8 @@ export function DashboardPage() {
       return
     }
 
+    await content_explorer.pull()
+
     setContents(await content_explorer.listContent(current_path))
     setDirectories(await content_explorer.listDirectories(current_path))
     setCollections(await content_explorer.listCollections())

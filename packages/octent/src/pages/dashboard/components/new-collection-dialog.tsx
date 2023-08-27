@@ -9,7 +9,9 @@ import {
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import { useContentStatus } from '@/hooks/use-content-status'
 import { cn, ContentExplorer } from '@/lib/utils'
-import type { Field } from '@/lib/utils/content-explorer/content-explorer'
+import {
+  AVAILABLE_FIELD_TYPES, Field,
+} from '@/lib/utils/content-explorer/content-explorer'
 
 interface NewCollectionDialogProperties {
   contentExplorer: ContentExplorer
@@ -119,12 +121,12 @@ export function NewCollectionDialog(properties: NewCollectionDialogProperties) {
                   <TableCell className='w-[20ch]'>
                     <Select
                       {...(field.type && { defaultValue: field.type })}
-                      onValueChange={function (value) {
-                        if (!['string', 'number', 'boolean'].includes(value)) {
+                      onValueChange={function (value: Field['type']) {
+                        if (!AVAILABLE_FIELD_TYPES.includes(value)) {
                           return
                         }
 
-                        updateField(index, { type: value as Field['type'] })
+                        updateField(index, { type: value })
                       }}
                     >
                       <SelectTrigger className={cn(
@@ -138,6 +140,7 @@ export function NewCollectionDialog(properties: NewCollectionDialogProperties) {
                         <SelectItem value='string'>String</SelectItem>
                         <SelectItem value='number'>Number</SelectItem>
                         <SelectItem value='boolean'>Boolean</SelectItem>
+                        <SelectItem value='rich-text'>Rich Text</SelectItem>
                       </SelectContent>
                     </Select>
                   </TableCell>

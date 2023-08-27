@@ -14,7 +14,7 @@ export function createGetCollection(parameters: {
 }) {
   return async function getCollection(collectionName: string) {
     const file = await parameters.fs.readFile(
-      `${parameters.collectionPath}/${collectionName}`,
+      `${parameters.collectionPath}/${collectionName}.json`,
       { encoding: 'utf8' },
     )
 

@@ -20,7 +20,9 @@ import { createRenameDirectory } from './functions/create-rename-directory'
 import { createUpdateCollection } from './functions/create-update-collection'
 import { createUpdateContent } from './functions/create-update-content'
 
-export const AVAILABLE_FIELD_TYPES = ['string', 'number', 'boolean'] as const
+export const AVAILABLE_FIELD_TYPES = [
+  'string', 'number', 'boolean',
+] as const
 
 export interface Field {
   name: string
@@ -39,7 +41,8 @@ type InferField<T extends Field> = {
 }
 type InferFields<
   T extends Readonly<Field[]>,
-  Result = object
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  Result = {}
 > = T extends Readonly<[infer F, ...infer R]>
   ? F extends Field
   ? R extends Field[]
@@ -138,7 +141,9 @@ export interface GitRepoOptions {
 export async function createContentExplorer(
   options: ContentExplorerOptions,
 ): Promise<ContentExplorer> {
-  const ROOT_PATH = `${directory}/${options.dataDirectory}`
+  const ROOT_PATH = (
+    `${directory}/${options.dataDirectory}`.replaceAll(/\/{2,}/g, '/')
+  )
   const CONTENT_PATH = `${ROOT_PATH}`
   const COLLECTION_PATH = `${ROOT_PATH}/__collections`
 

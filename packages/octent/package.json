@@ -13,6 +13,7 @@
     "@hookform/resolvers": "^3.1.0",
     "@isomorphic-git/lightning-fs": "^4.6.0",
     "@nangohq/frontend": "^0.17.3",
+    "@radix-ui/react-checkbox": "^1.0.4",
     "@radix-ui/react-dialog": "^1.0.4",
     "@radix-ui/react-label": "^2.0.2",
     "@radix-ui/react-select": "^1.2.2",
