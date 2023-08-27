@@ -1,19 +1,24 @@
-import { ContentExplorer } from '@/lib/utils'
 import { create } from 'zustand'
 
+import type { ContentExplorer } from '@/lib/utils'
+
+// eslint-disable-next-line functional/no-mixed-types
 interface ContentStatusState {
   status: 'modified' | 'unmodified' | 'pushing'
   updateStatus: (data: ContentExplorer | ContentStatusState['status']) => void
 }
 
 export const useContentStatus = create<ContentStatusState>(
-  set => ({
-    status: 'unmodified',
-    updateStatus: async (data) => {
-      if (data instanceof ContentExplorer)
-        set({ status: await data.isModified() ? 'modified' : 'unmodified' })
-      else
-        set({ status: data })
-    }
-  })
+  function (set) {
+    return ({
+      status: 'unmodified',
+      updateStatus: async function (data) {
+        if (typeof data === 'object') {
+          set({ status: await data.isModified() ? 'modified' : 'unmodified' })
+        } else {
+          set({ status: data })
+        }
+      },
+    })
+  },
 )

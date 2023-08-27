@@ -23,23 +23,28 @@ import {
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/hooks/use-auth'
 
-const httpsAuthFormSchema = z.object({
+const https_auth_form_schema = z.object({
   username: z.string(),
   password: z.string(),
 })
-type HttpsAuthFormValues = z.infer<typeof httpsAuthFormSchema>
+type HttpsAuthFormValues = z.infer<typeof https_auth_form_schema>
 
+/**
+ * @returns The HTTPS Git authentication page.
+ */
 export function HttpsGitAuthenticationPage() {
-  const authenticate = useAuth(state => state.authenticate)
+  const authenticate = useAuth(function (state) {
+    return state.authenticate
+  })
   const form = useForm<HttpsAuthFormValues>({
-    resolver: zodResolver(httpsAuthFormSchema),
+    resolver: zodResolver(https_auth_form_schema),
     defaultValues: {
       username: '',
       password: '',
     },
   })
 
-  const onSubmit = useCallback((values: HttpsAuthFormValues) => {
+  const onSubmit = useCallback(function (values: HttpsAuthFormValues) {
     authenticate({
       type: 'http',
       username: values.username,
@@ -48,7 +53,7 @@ export function HttpsGitAuthenticationPage() {
   }, [authenticate])
 
   return (
-    <div className="flex flex-col items-center justify-center h-full">
+    <div className='flex flex-col items-center justify-center h-full'>
       <Card>
         <CardHeader>
           <CardTitle>Fill your login information</CardTitle>
@@ -59,42 +64,50 @@ export function HttpsGitAuthenticationPage() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
               <FormField
                 control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Username</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Username" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Your username is the one you use to connect to your
-                      repository.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                name='username'
+                render={function ({ field }) {
+                  return ((
+                    <FormItem>
+                      <FormLabel>Username</FormLabel>
+                      <FormControl>
+                        <Input placeholder='Username' {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Your username is the one you use to connect to your
+                        repository.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  ))
+                }}
               />
               <FormField
                 control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Password" type="password" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Your password is the one you use to connect to your
-                      repository.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                name='password'
+                render={function ({ field }) {
+                  return ((
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='Password'
+                          type='password'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Your password is the one you use to connect to your
+                        repository.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  ))
+                }}
               />
-              <Button type="submit">Login</Button>
+              <Button type='submit'>Login</Button>
             </form>
           </Form>
         </CardContent>

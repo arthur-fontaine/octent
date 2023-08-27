@@ -7,12 +7,12 @@ import {
 import './globals.css'
 
 import { OctentOptionsProvider } from './contexts/octent-options-context'
-import { HttpsGitAuthenticationPage } from './pages/authentication/https-git-authentication-page'
+import {
+  HttpsGitAuthenticationPage,
+} from './pages/authentication/https-git-authentication-page'
 import { DashboardPage } from './pages/dashboard/dashboard-page'
 
 import type { OctentOptions } from '.'
-
-// import { GithubAuthenticationPage } from './pages/authentication/github-authentication-page'
 
 const router = createBrowserRouter([
   {
@@ -25,12 +25,14 @@ const router = createBrowserRouter([
   },
 ])
 
-function App(props: OctentOptions) {
-  return <div className="App bg-background text-foreground w-auto h-auto">
-    <OctentOptionsProvider value={props}>
+/**
+ * @param options The Octent application options
+ * @returns The Octent application
+ */
+export function App(options: OctentOptions) {
+  return <div className='App bg-background text-foreground w-auto h-auto'>
+    <OctentOptionsProvider value={options}>
       <RouterProvider router={router} />
     </OctentOptionsProvider>
   </div>
 }
-
-export default App

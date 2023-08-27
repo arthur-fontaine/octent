@@ -1,448 +1,242 @@
-import { FolderPlus, LucideIcon, Plus } from 'lucide-react'
-import { File, Folder } from 'lucide-react'
-import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import {
+  FilePlusIcon,
+  FolderPlusIcon,
+  PlusIcon,
+  FileIcon,
+  FolderIcon,
+} from 'lucide-react'
+import React, { useCallback, useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
 
 import { Breadcrumb } from '@/components/breadcrumb'
+import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { OctentOptionsContext } from '@/contexts/octent-options-context'
-import type { Collection, Content, Field } from '@/lib/utils/content-explorer'
-import { ContentExplorer } from '@/lib/utils/content-explorer'
 import { useContentStatus } from '@/hooks/use-content-status'
-import { Button } from '@/components/ui/button'
-import { useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/utils'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import type {
+  ContentExplorer,
+} from '@/lib/utils/content-explorer/content-explorer'
 
-type FSDirectory = Awaited<ReturnType<ContentExplorer['listDirectoriesInPath']>>[0]
-type FSContent = Awaited<ReturnType<ContentExplorer['listContentsInPath']>>[0]
+import { CollectionDialog } from './components/collection-dialog'
+import { ContentDialog } from './components/content-dialog'
+import { DashboardItem } from './components/dashboard-item'
+import { NewCollectionDialog } from './components/new-collection-dialog'
+import { useContentExplorer } from './hooks/use-content-explorer'
 
+type FSDirectory = Awaited<
+  ReturnType<ContentExplorer['listDirectories']>
+>[0]
+type FSContent = Awaited<
+  ReturnType<ContentExplorer['listContent']>
+>[0]
+
+/**
+ * @returns The dashboard page.
+ */
 export function DashboardPage() {
-  const options = useContext(OctentOptionsContext)
-
-  const params = useParams()
-  const currentPath = '*' in params ? params['*'] as string : '/'
+  const parameters = useParams()
+  const current_path = '*' in parameters ? parameters['*'] as string : '/'
 
   const [contents, setContents] = useState<FSContent[] | null>(null)
   const [directories, setDirectories] = useState<FSDirectory[] | null>(null)
   const [collections, setCollections] = useState<string[] | null>(null)
 
-  const [isCreatingDirectory, setIsCreatingDirectory] = useState(false)
+  const [is_creating_directory, setIsCreatingDirectory] = useState(false)
 
-  const auth = useAuth()
+  const content_status = useContentStatus(function (state) {
+    return state.status
+  })
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const updateContentStatus = useContentStatus(function (state) {
+    return state.updateStatus
+  })
 
-  const contentStatus = useContentStatus((state) => state.status)
-  const updateContentStatus = useContentStatus((state) => state.updateStatus)
+  const content_explorer = useContentExplorer()
 
-  const contentExplorer = useMemo(() => new ContentExplorer(
-    options.repositoryUrl,
-    options.contentDirectory,
-    options.dataType,
-    () => {
-      if (auth.type !== 'http')
-        throw new Error('Doens\'t support auth type other than http')
+  const updateContents = useCallback(async function () {
+    if (content_explorer === null) {
+      return
+    }
 
-      return {
-        username: auth.username,
-        password: auth.password,
-      }
-    },
-  ), [options.repositoryUrl, options.contentDirectory, options.dataType])
-
-  const updateContents = useCallback(async () => {
-    setContents(await contentExplorer.listContentsInPath(currentPath))
-    setDirectories(await contentExplorer.listDirectoriesInPath(currentPath))
-    setCollections(await contentExplorer.listCollections())
-  }, [contentExplorer, currentPath])
+    setContents(await content_explorer.listContent(current_path))
+    setDirectories(await content_explorer.listDirectories(current_path))
+    setCollections(await content_explorer.listCollections())
+  }, [content_explorer, current_path])
 
   useEffect(function () {
-    updateContents()
-  }, [updateContents, currentPath])
+    void updateContents()
+  }, [updateContents, current_path])
 
-  const createDirectory = useCallback(async (name: string, callback: () => void = () => { }) => {
-    await contentExplorer.createDirectory(`${currentPath}/${name}`)
-    updateContents().then(callback)
-  }, [contentExplorer, currentPath, updateContents])
-
-  return (
-    <div className="h-full mx-32 my-16 flex flex-col">
-      <header className="w-full flex flex-row-reverse mb-8">
-        <Button
-          variant="secondary"
-          onClick={() => {
-            updateContentStatus('pushing')
-            contentExplorer.push().then(() => updateContentStatus(contentExplorer))
-          }}
-          disabled={contentStatus !== 'modified'}
-        >
-          {contentStatus === 'pushing' ? 'Saving...' : 'Save'}
-        </Button>
-      </header>
-      <div className="flex-1 flex flex-row justify-center">
-        <main className="flex-1 max-w-4xl">
-          <header className="mb-8">
-            <h1>Content</h1>
-          </header>
-          <div className='mt-2 mb-4 flex flex-row justify-between items-center'>
-            <Breadcrumb
-              className='mb-0'
-              path={
-                [
-                  '/',
-                  ...currentPath
-                    .split('/')
-                    .filter(pathPart => pathPart.length > 0),
-                ]}
-            />
-            <div className='flex flex-row space-x-4'>
-              <Button variant='link' className='px-0' onClick={() => setIsCreatingDirectory(true)}>
-                <FolderPlus size={16} />
-              </Button>
-            </div>
-          </div>
-          <ul className="w-full space-y-2">
-            {
-              (directories?.length ?? 0) + (contents?.length ?? 0) === 0 && <Label>No content found.</Label>
-            }
-            {directories?.map(directory => (
-              !directory.path.startsWith('__') && <div key={directory.path} className="space-y-2">
-                <DashboardItem
-                  name={directory.displayName}
-                  label={new Date(directory.lastModified).toLocaleDateString()}
-                  link={`/dashboard/${directory.path}`}
-                  icon={Folder}
-                />
-                <Separator />
-              </div>
-            ))}
-            {
-              isCreatingDirectory && (
-                <div className="space-y-2">
-                  <DashboardItem
-                    name=''
-                    edit={{
-                      onBlur(value) {
-                        if (value.length > 0)
-                          createDirectory(value, () => setIsCreatingDirectory(false))
-                        else
-                          setIsCreatingDirectory(false)
-                      },
-                    }}
-                    icon={Folder}
-                  />
-                  <Separator />
-                </div>
-              )
-            }
-            {contents?.map(content => (
-              <div key={content.path} className="space-y-2">
-                <DashboardItem
-                  name={content.displayName}
-                  label={new Date(content.lastModified).toLocaleDateString()}
-                  dialog={<ContentDialog contentPath={content.path} contentExplorer={contentExplorer} />}
-                  icon={File}
-                />
-                <Separator />
-              </div>
-            ))}
-          </ul>
-        </main>
-        <aside className="w-64 ml-24">
-          <header className="mb-8 flex flex-row justify-between items-center border-b pb-2">
-            <h2 className="border-none p-0">Collections</h2>
-            <Dialog>
-              <DialogTrigger>
-                <Plus size={16} />
-              </DialogTrigger>
-              <DialogContent>
-                <NewCollectionDialog contentExplorer={contentExplorer} />
-              </DialogContent>
-            </Dialog>
-          </header>
-          {
-            collections?.length === 0 && <Label>No collections found.</Label>
-          }
-          <ul>
-            {collections?.map(collection => (
-              <DashboardItem
-                key={collection}
-                name={collection}
-                dialog={<CollectionDialog collection={collection} contentExplorer={contentExplorer} />}
-              />
-            ))}
-          </ul>
-        </aside>
-      </div>
-    </div>
-  )
-}
-
-function DashboardItem({
-  name,
-  label,
-  edit,
-  dialog,
-  link,
-  icon: Icon,
-}: { name: string; label?: string; icon?: LucideIcon } & (
-  | { dialog?: React.ReactNode; link?: never; edit?: never }
-  | { link: string; dialog?: never; edit?: never }
-  | {
-    edit: {
-      onBlur: (value: string) => void
-    }; dialog?: never; link?: never
-  }
-)) {
-  const nameParts = name.split('.')
-  const nameWithoutExtension = nameParts.length > 1 ? nameParts.slice(0, -1).join('.') : nameParts[0]
-
-  const ContentRow = (
-    <>
-      <div className="flex-1 flex items-center">
-        {Icon && <Icon className="mr-2 h-4 w-4" />}
-        {
-          edit
-            ? <Input
-              className="border-none outline-none focus-visible:ring-0 p-0 text-base h-auto leading-7"
-              defaultValue={nameWithoutExtension}
-              autoFocus
-              onBlur={event => edit.onBlur(event.currentTarget.value)}
-            />
-            : <p className="!m-0 select-none">{nameWithoutExtension}</p>
-        }
-      </div>
-      {label && <Label>{label}</Label>}
-    </>
-  )
-
-  const className = cn(
-    'w-full py-2 px-4 rounded-sm flex items-center justify-between',
-    !edit && 'hover:bg-muted/50 cursor-pointer'
-  )
-
-  return (
-    <li className="w-full">
-      {dialog
-        && <Dialog>
-          <DialogTrigger className={className}>
-            {ContentRow}
-          </DialogTrigger>
-          <DialogContent>
-            {dialog}
-          </DialogContent>
-        </Dialog>
-      }
-      {
-        link && <Link to={link} className={className}>
-          {ContentRow}
-        </Link>
-      }
-      {
-        edit && <div className={className}>
-          {ContentRow}
-        </div>
-      }
-    </li>
-  )
-}
-
-function CollectionDialog({ collection, contentExplorer }: { collection: string; contentExplorer: ContentExplorer }) {
-  const [collectionFields, setCollectionFields] = useState<Field[] | null>(null)
-
-  useEffect(() => {
-    contentExplorer.getCollection(collection).then(({ fields }) => {
-      setCollectionFields(fields)
-    })
-  }, [collection, contentExplorer])
-
-  return (
-    <div className="py-4">
-      <h3 className="mb-4">{collection.split('.').slice(0, -1).join('.')}</h3>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Field</TableHead>
-            <TableHead>Type</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {
-            collectionFields?.map(field => (
-              <TableRow key={field.name}>
-                <TableCell>{field.name}</TableCell>
-                <TableCell>{field.type}</TableCell>
-              </TableRow>
-            ))
-          }
-        </TableBody>
-      </Table>
-    </div>
-  )
-}
-
-function NewCollectionDialog({ contentExplorer }: { contentExplorer: ContentExplorer }) {
-  const newFieldTemplate: Partial<Field> = {}
-
-  const [collectionName, setCollectionName] = useState('')
-  const [collectionFields, setCollectionFields] = useState<Field[]>([])
-  const [newField, setNewField] = useState<Partial<Field>>(newFieldTemplate)
-
-  const updateContentStatus = useContentStatus((state) => state.updateStatus)
-
-  const isFieldAlmostCompleted = newField.name !== undefined && newField.name.length > 0 && newField.type !== undefined
-  const isValid = collectionName.length > 0 && collectionFields.length > 0 && (newField.name === undefined || isFieldAlmostCompleted)
-
-  const addField = useCallback((newField: Field) => {
-    setCollectionFields(prev => [...prev, newField])
-    setNewField(newFieldTemplate)
-  }, [setCollectionFields, newField, setNewField])
-
-  if (isFieldAlmostCompleted) {
-    addField(newField as Field)
-    setNewField(newFieldTemplate)
-  }
-
-  return (
-    <div className="py-4">
-      <Input
-        className="mb-4 border-none outline-none focus-visible:ring-offset-8 p-0 text-2xl font-semibold tracking-tight h-auto leading-7 w-[15ch]"
-        placeholder="Collection Name"
-        value={collectionName}
-        onChange={event => setCollectionName(event.currentTarget.value)}
-      />
-      <Table>
-        <TableBody>
-          {
-            [...collectionFields, newField].map((field, index) => (
-              <TableRow key={index}>
-                <TableCell>
-                  <Input
-                    className="border-none outline-none focus-visible:ring-offset-4 p-0 h-auto leading-7"
-                    defaultValue={field.name}
-                    placeholder="Field Name"
-                    onChange={event => {
-                      const value = event.currentTarget.value
-
-                      if (index === collectionFields.length) {
-                        setNewField(prev => {
-                          const newField = { ...prev }
-                          newField.name = value
-                          return newField
-                        })
-                      } else {
-                        setCollectionFields(prev => {
-                          const newFields = [...prev]
-                          newFields[index]!.name = value
-                          return newFields
-                        })
-                      }
-                    }}
-                  />
-                </TableCell>
-                <TableCell className='w-[20ch]'>
-                  <Select
-                    {...(field.type && { defaultValue: field.type })}
-                    onValueChange={value => {
-                      if (!['string', 'number', 'boolean'].includes(value)) {
-                        return
-                      }
-
-                      if (index === collectionFields.length) {
-                        setNewField(prev => {
-                          const newField = { ...prev }
-                          newField.type = value as Field['type']
-                          return newField
-                        })
-                      } else {
-                        setCollectionFields(prev => {
-                          const newFields = [...prev]
-                          newFields[index]!.type = value as Field['type']
-                          return newFields
-                        })
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="w-full border-none outline-none focus-visible:ring-offset-4 focus:ring-offset-4 p-0 h-auto leading-7">
-                      <SelectValue placeholder="Select a type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="string">String</SelectItem>
-                      <SelectItem value="number">Number</SelectItem>
-                      <SelectItem value="boolean">Boolean</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-              </TableRow>
-            ))
-          }
-        </TableBody>
-      </Table>
-      <div className="flex justify-end mt-4">
-        <Button
-          disabled={!isValid}
-          onClick={async () => {
-            await contentExplorer.createCollection({
-              name: collectionName,
-              fields: collectionFields
-            })
-            updateContentStatus(contentExplorer)
-          }}
-        >
-          Create
-        </Button>
-      </div>
-    </div>
-  )
-}
-
-function ContentDialog({ contentPath, contentExplorer }: { contentPath: string; contentExplorer: ContentExplorer }) {
-  const [content, setContent] = useState<Content<Collection> | null>(null)
-  const updateContentStatus = useContentStatus((state) => state.updateStatus)
-
-  useEffect(() => {
-    contentExplorer.getContent(contentPath).then((content) => {
-      setContent(content)
-    })
-  }, [])
-
-  useEffect(() => {
-    if (content) {
-      contentExplorer.updateContent(content, contentPath)
-        .then(() => updateContentStatus(contentExplorer))
+  const createDirectory = useCallback(async function (
+    name: string,
+    callback?: () => void,
+  ) {
+    if (content_explorer === null) {
+      return
     }
-  }, [content])
+
+    void await content_explorer.createDirectory(`${current_path}/${name}`)
+    void updateContents().then(callback)
+  }, [content_explorer, current_path, updateContents])
 
   return (
-    <div className="py-4">
-      {
-        content === null
-          ? <Label>Loading...</Label>
-          : Object.entries(content.data ?? {}).map(([key, value]) => (
-            <div key={key} className="flex flex-col mb-4 last:mb-0">
-              <Label className='mb-2'>{key}</Label>
-              <Input defaultValue={value} onChange={(e) => {
-                setContent({
-                  ...content,
-                  data: {
-                    ...content?.data,
-                    [key]: e.target.value,
-                  },
+    content_explorer === null
+      ? null
+      : (
+        <div className='h-full mx-32 my-16 flex flex-col'>
+          <header className='w-full flex flex-row-reverse mb-8'>
+            <Button
+              variant='secondary'
+              onClick={function () {
+                void updateContentStatus('pushing')
+                void content_explorer.push().then(function () {
+                  return updateContentStatus(content_explorer)
                 })
-              }} />
-            </div>
-          ))
-      }
-    </div>
+              }}
+              disabled={content_status !== 'modified'}
+            >
+              {content_status === 'pushing' ? 'Saving...' : 'Save'}
+            </Button>
+          </header>
+          <div className='flex-1 flex flex-row justify-center'>
+            <main className='flex-1 max-w-4xl'>
+              <header className='mb-8'>
+                <h1>Content</h1>
+              </header>
+              <div className='mt-2 mb-4 flex flex-row
+                              justify-between items-center'>
+                <Breadcrumb
+                  className='mb-0'
+                  path={
+                    [
+                      '/',
+                      ...(current_path
+                        .split('/')
+                        .filter(function (pathPart) {
+                          return pathPart.length > 0
+                        })),
+                    ]}
+                />
+                <div className='flex flex-row space-x-4'>
+                  <Button variant='link' className='px-0'>
+                    <FilePlusIcon size={16} />
+                  </Button>
+                  <Button variant='link' className='px-0' onClick={function () {
+                    return setIsCreatingDirectory(true)
+                  }}>
+                    <FolderPlusIcon size={16} />
+                  </Button>
+                </div>
+              </div>
+              <ul className='w-full space-y-2'>
+                {
+                  (directories?.length ?? 0) + (contents?.length ?? 0) === 0 &&
+                  <Label>No content found.</Label>
+                }
+                {directories?.map(function (directory) {
+                  return ((
+                    !directory.path.startsWith('__') &&
+                    <div key={directory.path} className='space-y-2'>
+                      <DashboardItem
+                        name={directory.displayName}
+                        label={
+                          new Date(directory.lastModified).toLocaleDateString()
+                        }
+                        link={`/dashboard/${directory.path}`}
+                        icon={FolderIcon}
+                      />
+                      <Separator />
+                    </div>
+                  ))
+                })}
+                {
+                  is_creating_directory && (
+                    <div className='space-y-2'>
+                      <DashboardItem
+                        name=''
+                        edit={{
+                          onBlur(value) {
+                            if (value.length > 0) {
+                              void createDirectory(value, function () {
+                                return setIsCreatingDirectory(false)
+                              })
+                            } else {
+                              setIsCreatingDirectory(false)
+                            }
+                          },
+                        }}
+                        icon={FolderIcon}
+                      />
+                      <Separator />
+                    </div>
+                  )
+                }
+                {contents?.map(function (content) {
+                  return ((
+                    <div key={content.path} className='space-y-2'>
+                      <DashboardItem
+                        name={content.displayName}
+                        label={
+                          new Date(content.lastModified).toLocaleDateString()
+                        }
+                        dialog={
+                          <ContentDialog
+                            contentPath={content.path}
+                            contentExplorer={content_explorer}
+                          />
+                        }
+                        icon={FileIcon}
+                      />
+                      <Separator />
+                    </div>
+                  ))
+                })}
+              </ul>
+            </main>
+            <aside className='w-64 ml-24'>
+              <header className={
+                cn(
+                  'mb-8 flex flex-row justify-between items-center',
+                  'border-b pb-2',
+                )
+              }>
+                <h2 className='border-none p-0'>Collections</h2>
+                <Dialog>
+                  <DialogTrigger>
+                    <PlusIcon size={16} />
+                  </DialogTrigger>
+                  <DialogContent>
+                    <NewCollectionDialog contentExplorer={content_explorer} />
+                  </DialogContent>
+                </Dialog>
+              </header>
+              {
+                (
+                  collections?.length === 0 &&
+                  <Label>No collections found.</Label>
+                )
+              }
+              <ul>
+                {collections?.map(function (collection) {
+                  return ((
+                    <DashboardItem
+                      key={collection}
+                      name={collection}
+                      dialog={
+                        <CollectionDialog
+                          collectionName={collection}
+                          contentExplorer={content_explorer}
+                        />
+                      }
+                    />
+                  ))
+                })}
+              </ul>
+            </aside>
+          </div>
+        </div>
+      )
   )
 }

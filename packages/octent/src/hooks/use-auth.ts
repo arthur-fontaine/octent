@@ -3,10 +3,6 @@ import { persist } from 'zustand/middleware'
 
 type AuthState = (
   | {
-    type: 'github'
-    token: string
-  }
-  | {
     type: 'ssh'
     email: string
     privateKey: string
@@ -28,11 +24,18 @@ interface AuthActions {
 
 export const useAuth = create<AuthState & AuthActions>()(
   persist(
-    set => ({
-      type: 'none',
-      authenticate: auth => set(auth),
-      logout: () => set({ type: 'none' }),
-    }),
+    function(set) {
+      return ({
+        type: 'none',
+        authenticate: function(auth) {
+          return set(auth) 
+        },
+        // eslint-disable-next-line functional/functional-parameters
+        logout: function() {
+          return set({ type: 'none' }) 
+        },
+      }) 
+    },
     {
       name: 'octent-auth',
     },
