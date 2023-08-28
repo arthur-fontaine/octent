@@ -5,6 +5,7 @@ import type { Field } from '@/lib/utils/content-explorer/content-explorer'
 
 import { ContentInputBoolean } from './content-input-boolean'
 import { ContentInputNumber } from './content-input-number'
+import { ContentInputRichText } from './content-input-rich-text'
 import { ContentInputString } from './content-input-string'
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -28,6 +29,9 @@ export function ContentInput(properties: ContentInputProperties) {
     }
     case 'boolean': {
       return <ContentInputBoolean {...properties} />
+    }
+    case 'rich-text': {
+      return <ContentInputRichText {...properties} />
     }
   }
 }

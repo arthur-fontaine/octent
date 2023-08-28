@@ -21,7 +21,7 @@ import { createUpdateCollection } from './functions/create-update-collection'
 import { createUpdateContent } from './functions/create-update-content'
 
 export const AVAILABLE_FIELD_TYPES = [
-  'string', 'number', 'boolean',
+  'string', 'number', 'boolean', 'rich-text',
 ] as const
 
 export interface Field {
@@ -29,13 +29,17 @@ export interface Field {
   type: typeof AVAILABLE_FIELD_TYPES[number]
 }
 
-type InferFieldType<T extends Field['type']> = T extends 'string'
-  ? string
-  : T extends 'number'
-  ? number
-  : T extends 'boolean'
-  ? boolean
-  : never
+type InferFieldType<T extends Field['type']> = (
+  (T extends 'string'
+    ? string
+    : (T extends 'number'
+      ? number
+      : (T extends 'boolean'
+        ? boolean
+        : (T extends 'rich-text'
+          ? string
+          : never))))
+)
 type InferField<T extends Field> = {
   [K in T['name']]: InferFieldType<T['type']>
 }
