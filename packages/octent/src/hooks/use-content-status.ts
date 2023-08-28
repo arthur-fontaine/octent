@@ -4,7 +4,7 @@ import type { ContentExplorer } from '@/lib/utils'
 
 // eslint-disable-next-line functional/no-mixed-types
 interface ContentStatusState {
-  status: 'modified' | 'unmodified' | 'pushing'
+  status: 'modified' | 'unmodified' | 'pushing' | 'resetting'
   updateStatus: (data: ContentExplorer | ContentStatusState['status']) => void
 }
 

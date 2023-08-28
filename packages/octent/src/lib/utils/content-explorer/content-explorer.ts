@@ -17,6 +17,7 @@ import { createListDirectories } from './functions/create-list-directory'
 import { createPull } from './functions/create-pull'
 import { createPush } from './functions/create-push'
 import { createRenameDirectory } from './functions/create-rename-directory'
+import { createReset } from './functions/create-reset'
 import { createUpdateCollection } from './functions/create-update-collection'
 import { createUpdateContent } from './functions/create-update-content'
 
@@ -71,6 +72,7 @@ export interface ContentExplorer {
 
   push: () => Promise<void>
   pull: () => Promise<void>
+  reset: () => Promise<void>
 
   formatContent: (content: Readonly<Content<Collection>>) => string
   getContent: (contentPath: string) => Promise<Content<Collection>>
@@ -173,6 +175,7 @@ export async function createContentExplorer(
 
     push: createPush({ gitRepoOptions: GIT_REPO_OPTIONS }),
     pull: createPull({ gitRepoOptions: GIT_REPO_OPTIONS }),
+    reset: createReset({ fs, gitRepoOptions: GIT_REPO_OPTIONS }),
 
     formatContent: createFormatContent({ dataType: options.dataType }),
     getContent: createGetContent({

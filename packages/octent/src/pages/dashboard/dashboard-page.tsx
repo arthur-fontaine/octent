@@ -88,9 +88,9 @@ export function DashboardPage() {
       ? null
       : (
         <div className='h-full mx-32 my-16 flex flex-col'>
-          <header className='w-full flex flex-row-reverse mb-8'>
+          <header className='w-full flex flex-row-reverse mb-8 gap-4'>
             <Button
-              variant='secondary'
+              variant='default'
               onClick={function () {
                 void updateContentStatus('pushing')
                 void content_explorer.push().then(function () {
@@ -101,6 +101,21 @@ export function DashboardPage() {
             >
               {content_status === 'pushing' ? 'Saving...' : 'Save'}
             </Button>
+            {(content_status === 'modified' || content_status === 'resetting')
+              && (
+                <Button
+                  variant='destructive'
+                  onClick={function () {
+                    void updateContentStatus('resetting')
+                    void content_explorer.reset().then(function () {
+                      return updateContentStatus(content_explorer)
+                    })
+                  }}
+                  disabled={content_status === 'resetting'}
+                >
+                  {content_status === 'resetting' ? 'Aborting...' : 'Abort'}
+                </Button>
+              )}
           </header>
           <div className='flex-1 flex flex-row justify-center'>
             <main className='flex-1 max-w-4xl'>
