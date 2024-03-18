@@ -4,5 +4,6 @@
   "extends": "@whitebird/tsconfig/node.json",
   "compilerOptions": {
     "outDir": "dist"
-  }
+  },
+  "exclude": ["eslint.config.*"]
 }

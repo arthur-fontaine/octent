@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint": "ESLINT_USE_FLAT_CONFIG=true turbo run lint",
+    "lint:fix": "ESLINT_USE_FLAT_CONFIG=true turbo run lint -- --fix"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.1.0",
