@@ -56,8 +56,7 @@ export function ContentInputRichText(properties: ContentInputProperties) {
               '[&_ul]:list-disc [&_ol]:list-decimal [&_ul]:list-inside ' +
               '[&_ol]:list-inside [&_li>*]:inline',
           },
-        }}
-      >
+        }} children={undefined}      >
       </EditorProvider>
     </div>
   )
