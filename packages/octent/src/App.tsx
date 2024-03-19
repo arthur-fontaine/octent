@@ -29,7 +29,7 @@ const router = createBrowserRouter([
  * @param options The Octent application options
  * @returns The Octent application
  */
-export function app(options: OctentOptions) {
+export function App(options: OctentOptions) {
   return <div className='App bg-background text-foreground w-auto h-auto'>
     <OctentOptionsProvider value={options}>
       <RouterProvider router={router} />

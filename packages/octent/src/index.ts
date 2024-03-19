@@ -1,6 +1,6 @@
 import ReactDOM from 'react-dom/server'
 
-import { app } from './app'
+import { App } from './app'
 
 export interface OctentOptions {
   repositoryUrl: string
@@ -13,5 +13,5 @@ export interface OctentOptions {
  * @returns A string of the Octent app
  */
 export function renderOctentAsString(options: OctentOptions) {
-  return ReactDOM.renderToString(app(options))
+  return ReactDOM.renderToString(App(options))
 }
